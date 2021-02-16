@@ -3,13 +3,30 @@ pragma solidity >=0.5.8 <=0.5.14;
 
 interface ITRC20 {
     function transfer(address to, uint256 value) external returns (bool);
+
     function approve(address spender, uint256 value) external returns (bool);
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
+
     function totalSupply() external view returns (uint256);
+
     function balanceOf(address who) external view returns (uint256);
-    function allowance(address owner, address spender) external view returns (uint256);
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
+
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 library SafeMath {
@@ -76,8 +93,8 @@ library SafeMath {
 }
 
 contract Context {
-
     constructor() internal {}
+
     function _msgSender() internal view returns (address payable) {
         return msg.sender;
     }
@@ -91,7 +108,6 @@ contract Ownable is Context {
         address indexed newOwner
     );
 
-
     constructor() internal {
         address msgSender = _msgSender();
         _owner = msgSender;
@@ -101,7 +117,6 @@ contract Ownable is Context {
     function owner() public view returns (address) {
         return _owner;
     }
-
 
     modifier onlyOwner() {
         require(_owner == _msgSender(), "Ownable: caller is not the owner");
@@ -124,16 +139,28 @@ contract Ownable is Context {
 }
 
 library TransferHelper {
-
-    function safeTransfer(ITRC20 token, address to, uint value) internal returns (bool){
+    function safeTransfer(
+        ITRC20 token,
+        address to,
+        uint256 value
+    ) internal returns (bool) {
         // bytes4(keccak256(bytes('transfer(address,uint256)')));
-        (bool success, bytes memory data) = address(token).call(abi.encodeWithSelector(0xa9059cbb, to, value));
+        (bool success, bytes memory data) =
+            address(token).call(abi.encodeWithSelector(0xa9059cbb, to, value));
         return (success && (data.length == 0 || abi.decode(data, (bool))));
     }
 
-    function safeTransferFrom(ITRC20 token, address from, address to, uint value) internal returns (bool){
+    function safeTransferFrom(
+        ITRC20 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal returns (bool) {
         // bytes4(keccak256(bytes('transferFrom(address,address,uint256)')));
-        (bool success, bytes memory data) = address(token).call(abi.encodeWithSelector(0x23b872dd, from, to, value));
+        (bool success, bytes memory data) =
+            address(token).call(
+                abi.encodeWithSelector(0x23b872dd, from, to, value)
+            );
         return (success && (data.length == 0 || abi.decode(data, (bool))));
     }
 }
@@ -176,7 +203,7 @@ contract EverStakePool is Ownable {
         periodDuration = _periodDuration;
         usersInStake = 0;
         UserInfo memory user =
-        UserInfo({id: 1, initial_block: 0, stake_amount: 0});
+            UserInfo({id: 1, initial_block: 0, stake_amount: 0});
         usersInfo[_matrixesOwner] = user;
     }
 
@@ -196,15 +223,17 @@ contract EverStakePool is Ownable {
         );
         require(
             lpEverToken.allowance(address(msg.sender), address(this)) >=
-            _amount,
+                _amount,
             "Increase the allowance first,call the approve method"
         );
 
-        require(lpEverToken.safeTransferFrom(
+        require(
+            lpEverToken.safeTransferFrom(
                 address(msg.sender),
                 address(this),
                 _amount
-            ));
+            )
+        );
         usersInfo[msg.sender].initial_block = block.number;
         uint32 period = blockToPeriod(usersInfo[msg.sender].initial_block);
         poolInfo[period].total_stake = lpEverToken.balanceOf(address(this));
@@ -225,11 +254,11 @@ contract EverStakePool is Ownable {
 
     function isTokensFrozen(address userAddress) public view returns (bool) {
         return (periodDuration >
-        (block.number.sub(usersInfo[userAddress].initial_block)));
+            (block.number.sub(usersInfo[userAddress].initial_block)));
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
-    function emergencyWithdraw()external {
+    function emergencyWithdraw() external {
         require(
             usersInfo[msg.sender].stake_amount > 0,
             "you do not have staked tokens, stake first"
@@ -246,7 +275,6 @@ contract EverStakePool is Ownable {
         usersInStake--;
         require(lpEverToken.safeTransfer(address(msg.sender), unstake_amount));
         emit UnStake(period, msg.sender, unstake_amount);
-
     }
 
     function unstake() external {
@@ -285,7 +313,7 @@ contract EverStakePool is Ownable {
         );
         uint256 dividends_amount = calculateDividends(msg.sender);
         require(
-            dividends_amount>0,
+            dividends_amount > 0,
             "The current available dividends is zero."
         );
         if (dividends_amount > address(this).balance) {
@@ -300,9 +328,9 @@ contract EverStakePool is Ownable {
     }
 
     function calculateDividends(address userAddress)
-    public
-    view
-    returns (uint256)
+        public
+        view
+        returns (uint256)
     {
         require(
             isUserExists(userAddress),
@@ -315,12 +343,17 @@ contract EverStakePool is Ownable {
             uint32 end = getCurrentPeriod();
             for (i; i < end; i++) {
                 if (poolInfo[i].daily_income > 0) {
-                    uint256 dailyCharge = poolInfo[i].daily_income.mul(1e12)
-                    .div(poolInfo[i].total_stake).mul(user.stake_amount).div(1e12);
+                    uint256 dailyCharge =
+                        poolInfo[i]
+                            .daily_income
+                            .mul(1e12)
+                            .div(poolInfo[i].total_stake)
+                            .mul(user.stake_amount)
+                            .div(1e12);
                     dividends = dividends.add(
                         dailyCharge < poolInfo[i].daily_income
-                        ? dailyCharge
-                        : poolInfo[i].daily_income
+                            ? dailyCharge
+                            : poolInfo[i].daily_income
                     );
                 }
             }
@@ -331,7 +364,7 @@ contract EverStakePool is Ownable {
 
     function createUser(address userAddress, uint32 userID) external onlyOwner {
         UserInfo memory user =
-        UserInfo({id: userID, initial_block: 0, stake_amount: 0});
+            UserInfo({id: userID, initial_block: 0, stake_amount: 0});
         usersInfo[userAddress] = user;
     }
 
@@ -339,18 +372,25 @@ contract EverStakePool is Ownable {
         return (usersInfo[userAddress].id != 0);
     }
 
-    function getPool(uint32 period) external view returns (string memory, string memory) {
-        return (uint2str(poolInfo[period].daily_income), uint2str(poolInfo[period].total_stake));
+    function getPool(uint32 period)
+        external
+        view
+        returns (string memory, string memory)
+    {
+        return (
+            uint2str(poolInfo[period].daily_income),
+            uint2str(poolInfo[period].total_stake)
+        );
     }
 
     function getUser(address userAddress)
-    external
-    view
-    returns (string memory, string memory)
+        external
+        view
+        returns (string memory, string memory)
     {
         return (
-        uint2str(usersInfo[userAddress].initial_block),
-        uint2str(usersInfo[userAddress].stake_amount)
+            uint2str(usersInfo[userAddress].initial_block),
+            uint2str(usersInfo[userAddress].stake_amount)
         );
     }
 
@@ -374,9 +414,9 @@ contract EverStakePool is Ownable {
     }
 
     function uint2str(uint256 _i)
-    internal
-    pure
-    returns (string memory _uintAsString)
+        internal
+        pure
+        returns (string memory _uintAsString)
     {
         if (_i == 0) {
             return "0";

@@ -2,8 +2,8 @@
 pragma solidity >=0.5.8 <=0.5.14;
 
 contract Context {
-
     constructor() internal {}
+
     function _msgSender() internal view returns (address payable) {
         return msg.sender;
     }
@@ -74,18 +74,35 @@ library SafeMath {
 
 interface IERC20 {
     function totalSupply() external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
+
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256);
+
     function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender,address recipient,uint256 amount) external returns (bool);
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner,address indexed spender,uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 contract ERC20 is Context, IERC20 {
-
     using SafeMath for uint256;
 
     mapping(address => uint256) private _balances;
@@ -100,11 +117,15 @@ contract ERC20 is Context, IERC20 {
     mapping(address => bool) internal _whitelist;
     bool internal _liquidityCreationPeriod;
 
-    constructor(string memory name, string memory symbol, uint8 decimals) public {
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint8 decimals
+    ) public {
         _name = name;
         _symbol = symbol;
         _decimals = decimals;
-        _liquidityCreationPeriod=true;
+        _liquidityCreationPeriod = true;
     }
 
     function name() public view returns (string memory) {
@@ -128,16 +149,18 @@ contract ERC20 is Context, IERC20 {
     }
 
     function transfer(address recipient, uint256 amount) public returns (bool) {
-        require(_liquidityCreationPeriod==false || _whitelist[recipient]==true,
-            "token purchase is not available during the liquidity creation period");
+        require(
+            _liquidityCreationPeriod == false || _whitelist[recipient] == true,
+            "token purchase is not available during the liquidity creation period"
+        );
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
 
     function allowance(address owner, address spender)
-    public
-    view
-    returns (uint256)
+        public
+        view
+        returns (uint256)
     {
         return _allowances[owner][spender];
     }
@@ -146,7 +169,6 @@ contract ERC20 is Context, IERC20 {
         _approve(_msgSender(), spender, amount);
         return true;
     }
-
 
     function transferFrom(
         address sender,
@@ -166,8 +188,8 @@ contract ERC20 is Context, IERC20 {
     }
 
     function increaseAllowance(address spender, uint256 addedValue)
-    public
-    returns (bool)
+        public
+        returns (bool)
     {
         _approve(
             _msgSender(),
@@ -177,10 +199,9 @@ contract ERC20 is Context, IERC20 {
         return true;
     }
 
-
     function decreaseAllowance(address spender, uint256 subtractedValue)
-    public
-    returns (bool)
+        public
+        returns (bool)
     {
         _approve(
             _msgSender(),
@@ -193,13 +214,11 @@ contract ERC20 is Context, IERC20 {
         return true;
     }
 
-
     function _transfer(
         address sender,
         address recipient,
         uint256 amount
     ) internal {
-
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
@@ -245,7 +264,6 @@ contract ERC20 is Context, IERC20 {
     function _setupDecimals(uint8 decimals_) internal {
         _decimals = decimals_;
     }
-
 }
 
 contract Ownable is Context {
@@ -256,7 +274,6 @@ contract Ownable is Context {
         address indexed newOwner
     );
 
-
     constructor() internal {
         address msgSender = _msgSender();
         _owner = msgSender;
@@ -266,7 +283,6 @@ contract Ownable is Context {
     function owner() public view returns (address) {
         return _owner;
     }
-
 
     modifier onlyOwner() {
         require(_owner == _msgSender(), "Ownable: caller is not the owner");
@@ -289,153 +305,308 @@ contract Ownable is Context {
 }
 
 interface IJustswapExchange {
-    event TokenPurchase(address indexed buyer, uint256 indexed trx_sold, uint256 indexed tokens_bought);
-    event TrxPurchase(address indexed buyer, uint256 indexed tokens_sold, uint256 indexed trx_bought);
-    event AddLiquidity(address indexed provider, uint256 indexed trx_amount, uint256 indexed token_amount);
-    event RemoveLiquidity(address indexed provider, uint256 indexed trx_amount, uint256 indexed token_amount);
+    event TokenPurchase(
+        address indexed buyer,
+        uint256 indexed trx_sold,
+        uint256 indexed tokens_bought
+    );
+    event TrxPurchase(
+        address indexed buyer,
+        uint256 indexed tokens_sold,
+        uint256 indexed trx_bought
+    );
+    event AddLiquidity(
+        address indexed provider,
+        uint256 indexed trx_amount,
+        uint256 indexed token_amount
+    );
+    event RemoveLiquidity(
+        address indexed provider,
+        uint256 indexed trx_amount,
+        uint256 indexed token_amount
+    );
 
-function () external payable;
-function getInputPrice(uint256 input_amount, uint256 input_reserve, uint256 output_reserve) external view returns (uint256);
-function getOutputPrice(uint256 output_amount, uint256 input_reserve, uint256 output_reserve) external view returns (uint256);
-function trxToTokenSwapInput(uint256 min_tokens, uint256 deadline) external payable returns (uint256);
-function trxToTokenTransferInput(uint256 min_tokens, uint256 deadline, address recipient) external payable returns(uint256);
-function trxToTokenSwapOutput(uint256 tokens_bought, uint256 deadline) external payable returns(uint256);
-function trxToTokenTransferOutput(uint256 tokens_bought, uint256 deadline, address recipient) external payable returns (uint256);
-function tokenToTrxSwapInput(uint256 tokens_sold, uint256 min_trx, uint256 deadline) external returns (uint256);
-function tokenToTrxTransferInput(uint256 tokens_sold, uint256 min_trx, uint256 deadline, address recipient) external returns (uint256);
-function tokenToTrxSwapOutput(uint256 trx_bought, uint256 max_tokens, uint256 deadline) external returns (uint256);
-function tokenToTrxTransferOutput(uint256 trx_bought, uint256 max_tokens, uint256 deadline, address recipient) external returns (uint256);
-function tokenToTokenSwapInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_trx_bought, uint256 deadline, address token_addr) external returns (uint256);
-function tokenToTokenTransferInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_trx_bought, uint256 deadline, address recipient, address token_addr) external returns (uint256);
-function tokenToTokenSwapOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_trx_sold, uint256 deadline, address token_addr) external returns (uint256);
-function tokenToTokenTransferOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_trx_sold, uint256 deadline, address recipient, address token_addr) external returns (uint256);
-function tokenToExchangeSwapInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_trx_bought, uint256 deadline, address exchange_addr) external returns (uint256);
-function tokenToExchangeTransferInput(uint256 tokens_sold, uint256 min_tokens_bought, uint256 min_trx_bought, uint256 deadline, address recipient, address exchange_addr) external returns (uint256);
-function tokenToExchangeSwapOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_trx_sold, uint256 deadline, address exchange_addr) external returns (uint256);
-function tokenToExchangeTransferOutput(uint256 tokens_bought, uint256 max_tokens_sold, uint256 max_trx_sold, uint256 deadline, address recipient, address exchange_addr) external returns (uint256);
-function getTrxToTokenInputPrice(uint256 trx_sold) external view returns (uint256);
-function getTrxToTokenOutputPrice(uint256 tokens_bought) external view returns (uint256);
-function getTokenToTrxInputPrice(uint256 tokens_sold) external view returns (uint256);
-function getTokenToTrxOutputPrice(uint256 trx_bought) external view returns (uint256);
-function tokenAddress() external view returns (address);
-function factoryAddress() external view returns (address);
-function addLiquidity(uint256 min_liquidity, uint256 max_tokens, uint256 deadline) external payable returns (uint256);
-function removeLiquidity(uint256 amount, uint256 min_trx, uint256 min_tokens, uint256 deadline) external returns (uint256, uint256);
+    function() external payable;
+
+    function getInputPrice(
+        uint256 input_amount,
+        uint256 input_reserve,
+        uint256 output_reserve
+    ) external view returns (uint256);
+
+    function getOutputPrice(
+        uint256 output_amount,
+        uint256 input_reserve,
+        uint256 output_reserve
+    ) external view returns (uint256);
+
+    function trxToTokenSwapInput(uint256 min_tokens, uint256 deadline)
+        external
+        payable
+        returns (uint256);
+
+    function trxToTokenTransferInput(
+        uint256 min_tokens,
+        uint256 deadline,
+        address recipient
+    ) external payable returns (uint256);
+
+    function trxToTokenSwapOutput(uint256 tokens_bought, uint256 deadline)
+        external
+        payable
+        returns (uint256);
+
+    function trxToTokenTransferOutput(
+        uint256 tokens_bought,
+        uint256 deadline,
+        address recipient
+    ) external payable returns (uint256);
+
+    function tokenToTrxSwapInput(
+        uint256 tokens_sold,
+        uint256 min_trx,
+        uint256 deadline
+    ) external returns (uint256);
+
+    function tokenToTrxTransferInput(
+        uint256 tokens_sold,
+        uint256 min_trx,
+        uint256 deadline,
+        address recipient
+    ) external returns (uint256);
+
+    function tokenToTrxSwapOutput(
+        uint256 trx_bought,
+        uint256 max_tokens,
+        uint256 deadline
+    ) external returns (uint256);
+
+    function tokenToTrxTransferOutput(
+        uint256 trx_bought,
+        uint256 max_tokens,
+        uint256 deadline,
+        address recipient
+    ) external returns (uint256);
+
+    function tokenToTokenSwapInput(
+        uint256 tokens_sold,
+        uint256 min_tokens_bought,
+        uint256 min_trx_bought,
+        uint256 deadline,
+        address token_addr
+    ) external returns (uint256);
+
+    function tokenToTokenTransferInput(
+        uint256 tokens_sold,
+        uint256 min_tokens_bought,
+        uint256 min_trx_bought,
+        uint256 deadline,
+        address recipient,
+        address token_addr
+    ) external returns (uint256);
+
+    function tokenToTokenSwapOutput(
+        uint256 tokens_bought,
+        uint256 max_tokens_sold,
+        uint256 max_trx_sold,
+        uint256 deadline,
+        address token_addr
+    ) external returns (uint256);
+
+    function tokenToTokenTransferOutput(
+        uint256 tokens_bought,
+        uint256 max_tokens_sold,
+        uint256 max_trx_sold,
+        uint256 deadline,
+        address recipient,
+        address token_addr
+    ) external returns (uint256);
+
+    function tokenToExchangeSwapInput(
+        uint256 tokens_sold,
+        uint256 min_tokens_bought,
+        uint256 min_trx_bought,
+        uint256 deadline,
+        address exchange_addr
+    ) external returns (uint256);
+
+    function tokenToExchangeTransferInput(
+        uint256 tokens_sold,
+        uint256 min_tokens_bought,
+        uint256 min_trx_bought,
+        uint256 deadline,
+        address recipient,
+        address exchange_addr
+    ) external returns (uint256);
+
+    function tokenToExchangeSwapOutput(
+        uint256 tokens_bought,
+        uint256 max_tokens_sold,
+        uint256 max_trx_sold,
+        uint256 deadline,
+        address exchange_addr
+    ) external returns (uint256);
+
+    function tokenToExchangeTransferOutput(
+        uint256 tokens_bought,
+        uint256 max_tokens_sold,
+        uint256 max_trx_sold,
+        uint256 deadline,
+        address recipient,
+        address exchange_addr
+    ) external returns (uint256);
+
+    function getTrxToTokenInputPrice(uint256 trx_sold)
+        external
+        view
+        returns (uint256);
+
+    function getTrxToTokenOutputPrice(uint256 tokens_bought)
+        external
+        view
+        returns (uint256);
+
+    function getTokenToTrxInputPrice(uint256 tokens_sold)
+        external
+        view
+        returns (uint256);
+
+    function getTokenToTrxOutputPrice(uint256 trx_bought)
+        external
+        view
+        returns (uint256);
+
+    function tokenAddress() external view returns (address);
+
+    function factoryAddress() external view returns (address);
+
+    function addLiquidity(
+        uint256 min_liquidity,
+        uint256 max_tokens,
+        uint256 deadline
+    ) external payable returns (uint256);
+
+    function removeLiquidity(
+        uint256 amount,
+        uint256 min_trx,
+        uint256 min_tokens,
+        uint256 deadline
+    ) external returns (uint256, uint256);
 }
-
 
 contract EverToken is ERC20, Ownable {
-using SafeMath for uint256;
+    using SafeMath for uint256;
 
-event Burned(address indexed burner, uint256 burnAmount);
-event MintedReward(address indexed minter, uint256 mintAmount);
+    event Burned(address indexed burner, uint256 burnAmount);
+    event MintedReward(address indexed minter, uint256 mintAmount);
 
-IJustswapExchange public swapExchange;
-address public spendingAndPromotion;
-address public developer;
+    IJustswapExchange public swapExchange;
+    address public spendingAndPromotion;
+    address public developer;
 
+    constructor(
+        address _developer,
+        address _spendingAndPromotion,
+        uint256 _forJustSwapAmount
+    ) public ERC20("EverToken", "EVER", 18) {
+        spendingAndPromotion = _spendingAndPromotion;
+        developer = _developer;
+        _mint(msg.sender, _forJustSwapAmount);
+    }
 
-constructor(
-address _developer,
-address _spendingAndPromotion,
-uint256 _forJustSwapAmount
-) public ERC20("EverToken", "EVER", 18) {
-spendingAndPromotion = _spendingAndPromotion;
-developer = _developer;
-_mint(msg.sender, _forJustSwapAmount);
-}
+    function initWhitelist(address[] calldata _addresses) external onlyOwner {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            _whitelist[_addresses[i]] = true;
+        }
+    }
 
+    function mintReward(uint256 _amount) external onlyOwner {
+        uint256 amountForDeveloper = _amount.div(100); //1%
+        uint256 amountForTeam = amountForDeveloper.mul(9); //9%
+        _mint(address(owner()), _amount);
+        _mint(developer, amountForDeveloper);
+        _mint(spendingAndPromotion, amountForTeam);
+        emit MintedReward(
+            owner(),
+            _amount.add(amountForDeveloper).add(amountForTeam)
+        );
+    }
 
-function initWhitelist(address[] calldata _addresses) external onlyOwner {
-for (uint256 i = 0; i < _addresses.length; i++) {
-_whitelist[_addresses[i]] = true;
-}
-}
+    function burn(uint256 _amount) external {
+        _burn(msg.sender, _amount);
+        emit Burned(msg.sender, _amount);
+    }
 
-function mintReward(uint256 _amount) external onlyOwner {
-uint256 amountForDeveloper = _amount.div(100); //1%
-uint256 amountForTeam = amountForDeveloper.mul(9); //9%
-_mint(address(owner()), _amount);
-_mint(developer, amountForDeveloper);
-_mint(spendingAndPromotion, amountForTeam);
-emit MintedReward(
-owner(),
-_amount.add(amountForDeveloper).add(amountForTeam)
-);
-}
+    function openJustswapExchange(address payable _swapExchange)
+        external
+        onlyOwner
+    {
+        require(address(swapExchange) == address(0));
+        swapExchange = IJustswapExchange(_swapExchange);
+        _liquidityCreationPeriod = false;
+    }
 
-function burn(uint256 _amount) external {
-_burn(msg.sender, _amount);
-emit Burned(msg.sender, _amount);
-}
+    /**
+     * @notice external price function for TRX to Token trades with an exact input.
+     * @param trx_sold Amount of TRX sold.
+     * @return Amount of Tokens that can be bought with input TRX.
+     */
+    function getTokensCanBeBought(uint256 trx_sold)
+        external
+        view
+        returns (uint256)
+    {
+        if (address(swapExchange) == address(0)) {
+            return 0;
+        }
+        return swapExchange.getTrxToTokenInputPrice(trx_sold);
+    }
 
-function openJustswapExchange(address payable _swapExchange) external onlyOwner {
-require(address(swapExchange) == address(0));
-swapExchange = IJustswapExchange(_swapExchange);
-_liquidityCreationPeriod=false;
-}
+    /**
+     * @notice external price function for TRX to Token trades with an exact output.
+     * @param tokens_bought Amount of Tokens bought.
+     * @return Amount of TRX needed to buy output Tokens.
+     */
+    function getTRXneededToBuy(uint256 tokens_bought)
+        external
+        view
+        returns (uint256)
+    {
+        if (address(swapExchange) == address(0)) {
+            return 0;
+        }
+        return swapExchange.getTrxToTokenOutputPrice(tokens_bought);
+    }
 
-/**
- * @notice external price function for TRX to Token trades with an exact input.
- * @param trx_sold Amount of TRX sold.
- * @return Amount of Tokens that can be bought with input TRX.
- */
-function getTokensCanBeBought(uint256 trx_sold)
-external
-view
-returns (uint256)
-{
-if (address(swapExchange) == address(0)) {
-return 0;
-}
-return swapExchange.getTrxToTokenInputPrice(trx_sold);
-}
+    /**
+     * @notice external price function for Token to TRX trades with an exact input.
+     * @param tokens_sold Amount of Tokens sold.
+     * @return Amount of TRX that can be bought with input Tokens.
+     */
+    function getTRXcanBeBought(uint256 tokens_sold)
+        external
+        view
+        returns (uint256)
+    {
+        if (address(swapExchange) == address(0)) {
+            return 0;
+        }
+        return swapExchange.getTokenToTrxInputPrice(tokens_sold);
+    }
 
-/**
- * @notice external price function for TRX to Token trades with an exact output.
- * @param tokens_bought Amount of Tokens bought.
- * @return Amount of TRX needed to buy output Tokens.
- */
-function getTRXneededToBuy(uint256 tokens_bought)
-external
-view
-returns (uint256)
-{
-if (address(swapExchange) == address(0)) {
-return 0;
-}
-return swapExchange.getTrxToTokenOutputPrice(tokens_bought);
-}
-
-/**
- * @notice external price function for Token to TRX trades with an exact input.
- * @param tokens_sold Amount of Tokens sold.
- * @return Amount of TRX that can be bought with input Tokens.
- */
-function getTRXcanBeBought(uint256 tokens_sold)
-external
-view
-returns (uint256)
-{
-if (address(swapExchange) == address(0)) {
-return 0;
-}
-return swapExchange.getTokenToTrxInputPrice(tokens_sold);
-}
-
-/**
- * @notice external price function for Token to TRX trades with an exact output.
- * @param trx_bought Amount of output TRX.
- * @return Amount of Tokens needed to buy output TRX.
- */
-function getTokensNeededToBuy(uint256 trx_bought)
-external
-view
-returns (uint256)
-{
-if (address(swapExchange) == address(0)) {
-return 0;
-}
-return swapExchange.getTokenToTrxOutputPrice(trx_bought);
-}
+    /**
+     * @notice external price function for Token to TRX trades with an exact output.
+     * @param trx_bought Amount of output TRX.
+     * @return Amount of Tokens needed to buy output TRX.
+     */
+    function getTokensNeededToBuy(uint256 trx_bought)
+        external
+        view
+        returns (uint256)
+    {
+        if (address(swapExchange) == address(0)) {
+            return 0;
+        }
+        return swapExchange.getTokenToTrxOutputPrice(trx_bought);
+    }
 }
